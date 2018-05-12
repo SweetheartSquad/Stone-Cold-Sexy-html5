@@ -1,6 +1,7 @@
-import { getInput, setScene, resources } from './main';
+import { getInput, setScene } from './main';
 import { Container, Sprite } from 'pixi.js/lib/core';
 import MenuScene from './MenuScene';
+import { resources } from './Game';
 
 export default class EndScene extends Container {
 	constructor(score) {

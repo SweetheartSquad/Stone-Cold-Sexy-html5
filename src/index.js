@@ -1,5 +1,5 @@
 import Resizer from './Resizer';
-
+import size from './size';
 import './assets/style.css';
 
 // try to auto-focus and make sure the game can be focused with a click if run from an iframe
@@ -8,11 +8,10 @@ document.body.addEventListener('mousedown', function() {
 	window.focus();
 });
 
-
-const size = Object.freeze({
-	x: 64,
-	y: 64
-});
+// 0 = preload doesn't visually affect loader progress
+// 1 = asset load doesn't visually affect loader progress
+// .5 = preload and asset load equally visually affect loader progress
+const preloadWeight = .75;
 
 const resizer = new Resizer(size.x, size.y, Resizer.SCALE_MODES.MULTIPLES);
 document.body.appendChild(resizer.element);
@@ -25,36 +24,38 @@ playEl.onclick = play;
 
 const progressEl = document.createElement('p');
 
+document.addEventListener('chunk-progress-webpack-plugin', ({ detail: { loaded, total, resource } }) => {
+	loadProgressHandler({
+			progress: loaded / total * 100
+		},
+		resource
+	);
+});
+
 function play() {
 	playEl.remove();
 
 	resizer.appendChild(progressEl);
 
 	// start the preload
-	preload();
+	loadProgressHandler({ progress: 0 });
 
 	Promise.all([
-			import ('./Game'),
-			import ('./main')
+			import ('./Game')
 		])
 		.then(([{
-			default: Game
-		}, {
-			init
+			default: game
 		}]) => {
 			preloaded = true;
 			try {
 				// start the actual load
-				loadProgressHandler({
-					progress: 0
-				}, {});
+				loadProgressHandler({ progress: 0 });
 
-				window.game = new Game(size);
-				window.game.load({
+				game.load({
 					onLoad: loadProgressHandler,
 					onComplete: () => {
-						loadCompleteHandler();
-						init();
+						progressEl.remove();
+						resizer.appendChild(game.app.view);
 					},
 					onError: error => {
 						fail({
@@ -94,14 +95,6 @@ function renderPreload() {
 	]}`;
 }
 
-function preload() {
-	if (preloaded) {
-		return;
-	}
-	renderPreload();
-	requestAnimationFrame(preload);
-}
-
 function fail({
 	message,
 	error
@@ -112,43 +105,14 @@ function fail({
 
 
 
-function loadProgressHandler(loader, resource) {
+function loadProgressHandler(loader, resource = { url: "N/A" }) {
 	// called during loading
-	if (process.env.NODE_ENV) {
-		console.log(`loading: ${resource.url}`);
-		console.log(`progress: ${loader.progress}%`);
+	let { progress } = loader;
+	if (preloaded) {
+		progress *= 1 - preloadWeight;
+		progress += preloadWeight * 100;
+	} else {
+		progress *= preloadWeight;
 	}
-	progressEl.textContent = `Loading: ${Math.floor(loader.progress)}%`;
+	progressEl.innerHTML = `Loading: ${(progress < 10 ? '&nbsp;': '')}${Math.floor(progress)}%`;
 }
-
-function loadCompleteHandler() {
-	progressEl.remove();
-	resizer.appendChild(window.game.app.view);
-}
-
-// create render texture
-//renderTexture = PIXI.RenderTexture.create(size.x,size.y,PIXI.SCALE_MODES.NEAREST,1);
-
-// create a sprite that uses the render texture
-//renderSprite = new PIXI.Sprite(renderTexture, new PIXI.Rectangle(0,0,size.x,size.y));
-
-// hacky fullscreen toggle
-// const toggleFullscreen = function () {
-// 	if (game.view.toggleFullscreen) {
-// 		if (getFullscreenElement()) {
-// 			exitFullscreen();
-// 		} else {
-// 			requestFullscreen(display);
-// 		}
-// 		game.view.toggleFullscreen = false;
-// 	}
-// };
-// document.body.addEventListener('mouseup', toggleFullscreen);
-// document.body.addEventListener('keyup', toggleFullscreen);
-
-// document.exitFullscreen =
-// document.exitFullscreen ||
-// document.oExitFullScreen ||
-// document.msExitFullScreen ||
-// document.mozCancelFullScreen ||
-// document.webkitExitFullscreen;

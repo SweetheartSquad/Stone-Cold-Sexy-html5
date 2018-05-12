@@ -1,30 +1,49 @@
+const path = require('path');
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
-const path = require('path');
+const ChunkProgressWebpackPlugin = require('chunk-progress-webpack-plugin');
 const package = require('./package');
 
 module.exports = {
 	module: {
 		rules: [{
-			test: /\.js$/,
+			test: /\.js$/, // source
 			exclude: /(node_modules|bower_components)/,
 			use: {
 				loader: 'babel-loader'
 			}
 		}, {
-			test: /\.css$/,
+			test: /\.css$/, // stylesheets
 			use: [
 				'style-loader',
-				'css-loader'
+				'css-loader',
+				{
+					loader: 'postcss-loader',
+					options: {
+						plugins: [
+							require('autoprefixer')(),
+							require('postcss-clean')()
+						]
+					}
+				}
 			]
 		}, {
-			test: /\.(png|jpg|gif|wav|ogg|mp3|fnt|xml|frag|vert)$/,
+			test: /\.fnt\.(png||xml)$/, // bitmap fonts
+			use: {
+				loader: 'file-loader',
+				options: {
+					outputPath: 'assets/',
+					name: '[name].[ext]'
+				}
+			}
+		}, {
+			test: /(?<!\.fnt)\.(png|jpg|gif|wav|ogg|mp3|frag|vert|xml)$/, // assets, excluding bitmap fonts
 			use: {
 				loader: 'url-loader',
 				options: {
 					outputPath: 'assets/',
-					name: '[name].[ext]',
-					limit: 512, // bytes
+					limit: Infinity // bytes
 				}
 			}
 		}]
@@ -37,6 +56,7 @@ module.exports = {
 		path: path.resolve(__dirname, 'public')
 	},
 	plugins: [
+		new ChunkProgressWebpackPlugin(),
 		new CleanWebpackPlugin(['public']), // cleans dist
 		new HtmlWebpackPlugin({ // creates index.html
 			title: package.description,
@@ -46,5 +66,5 @@ module.exports = {
 			minify: true,
 			favicon: './src/assets/icon.png'
 		})
-	]
+	],
 };

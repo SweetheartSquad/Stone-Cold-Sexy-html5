@@ -1,4 +1,5 @@
-import { getInput, setScene, resources } from './main';
+import { getInput, setScene } from './main';
+import { resources } from './Game';
 import { Container, Sprite } from 'pixi.js/lib/core';
 import PoseScene from './PoseScene';
 

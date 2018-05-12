@@ -1,5 +1,5 @@
 import { Sprite } from "pixi.js/lib/core";
-import { resources } from "./main";
+import { resources } from './Game';
 
 export default class Peep extends Sprite {
 	constructor() {

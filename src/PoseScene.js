@@ -1,12 +1,21 @@
-import { getInput, setScene, resources, screenFilter } from './main';
+import { getInput, setScene } from './main';
+import game, { resources } from './Game';
 import { Container, Sprite, Graphics } from 'pixi.js/lib/core';
 import { BitmapText } from 'pixi.js/lib/extras';
 import EndScene from './EndScene';
 import Peep from './Peep';
+import CustomFilter from './CustomFilter';
 
 export default class PoseScene extends Container {
 	constructor() {
 		super();
+		this.screenFilter = new CustomFilter(resources.frag.data);
+		this.screenFilter.uniforms.redout = 0;
+		this.screenFilter.uniforms.whiteout = 0;
+		this.screenFilter.padding = 0;
+
+		this.filters = [this.screenFilter];
+
 		this.timeouts = {};
 		this.confidence = 100;
 		this.score = 0;
@@ -101,10 +110,8 @@ export default class PoseScene extends Container {
 	}
 
 	update() {
-		const resources = window.game.app.loader.resources;
 		if (getInput().justDown) {
 			this.posing = true;
-			console.log('hey');
 			resources.in.data.play();
 			this.redout = 1;
 			this.poser.texture = resources[`posing_${Math.floor(Math.random()*3)+1}`].texture;
@@ -120,7 +127,6 @@ export default class PoseScene extends Container {
 		} else {
 			this.confidence -= 0.01 + (this.score / 5000);
 		}
-		// this.score += 1;
 		this.clouds.forEach((cloud, idx) => {
 			cloud.x -= 1 / (30 + idx * 5);
 			if (cloud.x < -64) {
@@ -175,8 +181,8 @@ export default class PoseScene extends Container {
 			this.redout = 0;
 		}
 
-		screenFilter.uniforms.whiteout = this.whiteout;
-		screenFilter.uniforms.redout = this.redout;
+		this.screenFilter.uniforms.whiteout = this.whiteout;
+		this.screenFilter.uniforms.redout = this.redout;
 		
 		const g = resources.song2.data.volume() + (this.posing ? 0.05 : -0.05);
 		resources.song2.data.volume(Math.max(.25, Math.min(1, g)));

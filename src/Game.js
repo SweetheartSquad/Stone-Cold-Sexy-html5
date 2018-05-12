@@ -1,13 +1,15 @@
 import 'pixi.js';
 import HowlerMiddleware from './HowlerMiddleware';
-import assets from './assets.js';
+import assets from './assets';
+import { init } from './main';
+import size from './size';
 
 // PIXI configuration stuff
 PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
 PIXI.zero = Object.freeze(new PIXI.Point(0, 0));
 
-export default class Game {
-	constructor(size) {
+class Game {
+	constructor() {
 		const canvas = document.createElement('canvas');
 		this.app = new PIXI.Application({
 			view: canvas,
@@ -20,7 +22,7 @@ export default class Game {
 			roundPixels: true,
 			clearBeforeRender: true,
 			autoResize: false,
-			backgroundColor: 0xFF0000
+			backgroundColor: 0x000000
 		});
 		this.startTime = Date.now();
 
@@ -54,7 +56,12 @@ export default class Game {
 	}) {
 		this.app.loader.onLoad.add(onLoad);
 		this.app.loader.onComplete.add(onComplete);
+		this.app.loader.onComplete.add(init);
 		this.app.loader.onError.add(onError);
 		this.app.loader.load();
 	}
 }
+
+const game = new Game();
+export default game;
+export const resources = game.app.loader.resources;
